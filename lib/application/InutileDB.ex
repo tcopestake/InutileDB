@@ -3,7 +3,7 @@ defmodule InutileDB do
   This is the main entrypoint for the InutileDB app.
 
   Starts a server based on the command line options
-  e.g. a directory worker listening on a given port.
+  e.g. a directory server listening on a given port.
   """
 
   use Application
@@ -11,32 +11,29 @@ defmodule InutileDB do
   def start(_type, _args) do
     options = get_options()
 
-    worker_module = determine_worker_module(
-      String.to_existing_atom(options[:type])
+    server_module = determine_mode(
+      String.to_existing_atom(options[:node_mode])
     )
 
-    GenServer.start_link(
-      InutileDB.Networking.TCP.Server,
-      %{
-        worker_module: worker_module,
-        port: options[:port]
-      }
-    )
+    GenServer.start_link(server_module, %{
+      port: options[:listen_port]
+    })
   end
 
-  defp determine_worker_module(type_atom) do
-    type_map = %{
-      directory: InutileDB.Workers.DirectoryWorker,
+  defp determine_mode(mode_atom) do
+    mode_map = %{
+      directory: InutileDB.Modes.Directory.Server,
+      echo:  InutileDB.Modes.Echo.Server,
       data: "hello!"
     }
 
-    worker_module = type_map[type_atom]
+    server_module = mode_map[mode_atom]
 
-    if (worker_module === nil) do
-      raise KeyError, message: "Unable to determine node type"
+    if (server_module === nil) do
+      raise KeyError, message: "Unable to determine server for specified mode"
     end
 
-    worker_module
+    server_module
   end
 
   defp get_options() do
@@ -44,13 +41,13 @@ defmodule InutileDB do
       System.argv(),
 
       switches: [
-        port: :integer,
-        type: :string,
+        listen_port: :integer,
+        node_mode: :string,
       ],
 
       aliases: [
-        p: :port,
-        t: :type,
+        p: :listen_port,
+        m: :node_mode,
       ]
     )
 

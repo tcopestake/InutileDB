@@ -1,4 +1,4 @@
-defmodule InutileDB.Workers.DirectoryWorker do
+defmodule InutileDB.Modes.Echo.Worker do
   use GenServer
 
   @impl true
